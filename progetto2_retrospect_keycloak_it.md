@@ -1,234 +1,94 @@
-# Progetto 2: Integrazione Keycloak nel Middleware RETROSPECT
+# Progetto 2: Integrazione Keycloak nel Deployment Kubernetes di Stack4Things
 
 ## Informazioni Generali
 
-**Titolo:** Integrazione Keycloak nel Middleware RETROSPECT: Unified Identity and Access Management per Orchestrazione IoT
+**Titolo:** Integrazione Keycloak nel Deployment Kubernetes di Stack4Things: Migrazione da Keystone a Keycloak per Identity and Access Management Moderno
 
-**Competenze Richieste:** Rust, Kubernetes, Keycloak, OIDC/OAuth2, TLS/mTLS, RBAC
+**Competenze Richieste:** Kubernetes, Keycloak, OIDC/OAuth2, Python, Helm, Istio, Docker/Container Technologies
 
 ---
 
 ## Contesto e Motivazione
 
-Dal Deliverable D3.1, RETROSPECT attualmente utilizza:
-- **Certificati X.509** per autenticazione device (mTLS)
-- **Token service account Kubernetes** per servizi interni
-- **OIDC menzionato** ma non implementato per operatori umani
-- **RBAC** per autorizzazione
+Stack4Things è un framework open-source progettato per gestire la complessità della gestione di flotte IoT, fornendo una soluzione completa per orchestrare dispositivi IoT, gestire plugin e facilitare la comunicazione tra dispositivi edge e servizi cloud. Il framework è composto da diversi componenti tra cui IoTronic Conductor (l'orchestratore lato cloud), Lightning-Rod (l'agente lato dispositivo), Crossbar (router WAMP), e un'interfaccia web basata su OpenStack Horizon.
 
-**Limitazioni Attuali:**
-- Nessun Identity Provider centralizzato per operatori umani
-- Nessun SSO tra dashboard e API
-- Difficile integrazione con Identity Provider esterni
-- Autorizzazione limitata oltre RBAC base
+Attualmente, Stack4Things si basa su OpenStack Keystone come Identity Provider, il che presenta diverse sfide architetturali e operative. Keystone, sebbene potente nell'ecosistema OpenStack, crea un accoppiamento stretto con l'infrastruttura specifica di OpenStack e introduce complessità che potrebbe non essere necessaria per scenari di orchestrazione IoT. Il deployment attuale su Kubernetes (come documentato nel repository `Stack4Things_k3s_deployment`) include Keystone come servizio containerizzato, ma questo approccio limita la flessibilità nei metodi di autenticazione e rende difficile l'integrazione con soluzioni moderne di gestione delle identità.
 
-**Obiettivo:** Integrare Keycloak come Identity Provider centralizzato per operatori umani, mantenendo l'autenticazione basata su certificati esistente per i device e i token service account per i servizi interni.
+La migrazione a Keycloak rappresenta un cambiamento strategico verso un'architettura di autenticazione più flessibile e basata su standard. Keycloak fornisce supporto completo per i protocolli OIDC e OAuth2, abilitando integrazione seamless con identity provider esterni, supporto per flussi di autenticazione moderni, e funzionalità di sicurezza migliorate come token introspection, policy di autorizzazione granulari, e gestione centralizzata degli utenti. Questa migrazione non solo modernizzerà il layer di autenticazione ma abiliterà anche una migliore integrazione con sistemi di identità enterprise, supporto per scenari multi-tenant, e miglioramento dell'esperienza utente attraverso capacità di Single Sign-On (SSO).
+
+Il progetto coinvolge l'analisi dell'architettura di deployment Kubernetes attuale, comprendere come Keystone è integrato con i componenti IoTronic, e sostituire sistematicamente l'autenticazione Keystone con Keycloak mantenendo la compatibilità all'indietro durante il periodo di transizione. Questo lavoro richiede una comprensione approfondita dei pattern di deployment Kubernetes, middleware di autenticazione, e l'architettura interna dei componenti Stack4Things.
+
+**Obiettivo:** Sostituire Keystone con Keycloak come Identity Provider nel deployment Kubernetes di Stack4Things, implementando autenticazione OIDC/OAuth2 per tutti i componenti Stack4Things mantenendo la piena funzionalità e migliorando la postura di sicurezza.
 
 ---
 
 ## Obiettivi del Progetto
 
 ### Obiettivo Principale
-Integrare Keycloak nel middleware RETROSPECT per fornire autenticazione e autorizzazione unificata per operatori umani, mantenendo i meccanismi esistenti per device e servizi interni.
+Migrare il deployment Kubernetes di Stack4Things da autenticazione Keystone a Keycloak, implementando una soluzione moderna e basata su standard per identity and access management che mantiene la compatibilità con la funzionalità Stack4Things esistente abilitando al contempo funzionalità di sicurezza avanzate e capacità di integrazione.
 
 ### Obiettivi Specifici
-1. Configurare Keycloak come Identity Provider per RETROSPECT
-2. Implementare autenticazione OIDC per operatori nel dashboard
-3. Integrare Keycloak con Kubernetes RBAC per autorizzazione
-4. Implementare middleware di autenticazione multi-mode (Keycloak + certificati + service accounts)
-5. Estendere Gateway Controller per autenticazione Keycloak
-6. Implementare refresh automatico token
-7. Fornire SSO tra dashboard e API
+1. Analizzare l'architettura del deployment Kubernetes Stack4Things attuale e i punti di integrazione Keystone
+2. Deployare e configurare Keycloak come Identity Provider all'interno del cluster Kubernetes
+3. Implementare middleware di autenticazione OIDC/OAuth2 per l'API IoTronic Conductor
+4. Modificare IoTronic UI (basato su Horizon) per usare Keycloak per l'autenticazione utente
+5. Aggiornare IoTronic Wagent e altri componenti per autenticarsi con Keycloak
+6. Implementare meccanismi di validazione e refresh token tra tutti i componenti
+7. Configurare realm Keycloak, client, ruoli e policy di autorizzazione per Stack4Things
+8. Garantire un percorso di migrazione seamless con compatibilità all'indietro durante la transizione
+9. Documentare il processo di migrazione e fornire guide di deployment
 
 ---
 
 ## Descrizione Tecnica
 
-### 1. Configurazione Keycloak per RETROSPECT
+### 1. Analisi del Deployment Kubernetes Stack4Things Attuale
 
-**Attività:**
-- Setup realm Keycloak dedicato per RETROSPECT
-- Configurazione client:
-  - Dashboard UI (public client)
-  - API Server (confidential client)
-  - Kubernetes API Server (integrazione OIDC)
-- Gestione utenti:
-  - Account operatori
-  - Definizione ruoli (admin, operator, viewer)
-  - Gestione gruppi per multi-tenant
-- Service accounts per componenti interni (opzionale)
+La prima fase del progetto coinvolge un'analisi comprensiva del deployment Stack4Things esistente. Il repository `Stack4Things_k3s_deployment` contiene i manifest Kubernetes completi per deployare Stack4Things, inclusi deployment per Keystone, IoTronic Conductor, IoTronic UI, IoTronic Wagent, Crossbar, RabbitMQ, e MariaDB. Comprendere come questi componenti interagiscono e come l'autenticazione Keystone è attualmente implementata è cruciale per pianificare la migrazione.
 
-**Deliverable:** Configurazione realm Keycloak + documentazione
+Gli studenti dovranno esaminare i manifest di deployment, i file di configurazione, e le variabili d'ambiente per identificare tutti i punti di integrazione Keystone. Questo include analizzare come IoTronic Conductor valida i token, come l'UI autentica gli utenti, come funziona l'autenticazione servizio-to-servizio, e come ruoli e permessi sono gestiti. L'analisi dovrebbe risultare in un documento di mapping dettagliato che identifica ogni componente, file di configurazione, e percorso di codice che interagisce con Keystone.
 
----
+Particolare attenzione dovrebbe essere data ai file di configurazione nelle directory `conf_conductor/`, `conf_ui/`, e `conf_wagent/`, poiché questi contengono le impostazioni di autenticazione che devono essere modificate. Inoltre, le variabili d'ambiente nei manifest di deployment mostrano come gli endpoint Keystone e le credenziali sono passate ai container, che dovranno essere sostituite con configurazione Keycloak.
 
-### 2. Middleware di Autenticazione Multi-Mode
+### 2. Deployment e Configurazione Keycloak in Kubernetes
 
-**Componenti da implementare:**
+Deployare Keycloak all'interno del cluster Kubernetes richiede pianificazione accurata per garantire alta disponibilità, allocazione appropriata delle risorse, e configurazione sicura. Keycloak dovrebbe essere deployato come StatefulSet con storage persistente per il suo database (PostgreSQL o MySQL), garantendo che i dati utente e le configurazioni realm persistano tra i riavvii dei pod.
 
-#### 2.1 Authentication Trait
-```rust
-// Nuovo crate: wasmbed-auth-keycloak
-pub trait Authenticator {
-    async fn authenticate(&self, request: &AuthRequest) -> Result<AuthResult, AuthError>;
-    async fn validate_token(&self, token: &str) -> Result<TokenClaims, AuthError>;
-    async fn refresh_token(&self, refresh_token: &str) -> Result<TokenPair, AuthError>;
-}
-```
+La configurazione Keycloak deve includere un realm dedicato per Stack4Things con applicazioni client appropriate configurate per ogni componente. IoTronic Conductor richiederà un client confidenziale per autenticazione servizio-to-servizio usando client credentials flow. IoTronic UI avrà bisogno di un client pubblico configurato per authorization code flow con PKCE per supportare il login utente. Altri componenti come IoTronic Wagent potrebbero richiedere service account o configurazioni client specifiche basate sulle loro necessità di autenticazione.
 
-#### 2.2 Multi-Mode Authentication Handler
-```rust
-pub enum AuthenticationMode {
-    KeycloakOIDC { token: String },
-    DeviceCertificate { cert: X509Certificate },
-    ServiceAccount { token: String },
-}
+Ruoli e permessi devono essere attentamente mappati dai ruoli Keystone esistenti (admin_iot_project, manager_iot_project, user_iot) a ruoli Keycloak, garantendo che le policy di autorizzazione siano equivalenti o migliorate. La configurazione dovrebbe anche supportare user federation se necessario, e fornire impostazioni token appropriate inclusi tempi di scadenza, rotazione refresh token, e gestione sessioni.
 
-pub struct UnifiedAuthHandler {
-    keycloak: KeycloakAuthenticator,
-    cert_validator: CertificateValidator,
-    service_account_validator: ServiceAccountValidator,
-}
+### 3. Implementazione Middleware Autenticazione IoTronic Conductor
 
-impl UnifiedAuthHandler {
-    pub async fn authenticate(&self, mode: AuthenticationMode) -> Result<AuthContext>;
-    pub fn determine_mode(&self, request: &Request) -> Option<AuthenticationMode>;
-}
-```
+IoTronic Conductor è il server API core che gestisce tutte le operazioni Stack4Things. Attualmente, autentica le richieste usando token Keystone passati via header `X-Auth-Token`. Questo deve essere sostituito con validazione token JWT Keycloak.
 
-**Deliverable:** Middleware di autenticazione con supporto multi-mode
+L'implementazione richiede creare un middleware Python che intercetta le richieste API in arrivo, estrae token JWT dall'header `Authorization: Bearer <token>`, valida la firma del token usando la chiave pubblica Keycloak (ottenuta via endpoint JWKS), controlla la scadenza del token, e estrae claim utente e ruoli. Il middleware dovrebbe anche gestire scenari di refresh token e fornire risposte di errore appropriate per fallimenti di autenticazione.
 
----
+Il middleware deve integrarsi seamlessly con il codebase IoTronic Conductor esistente, che è basato su Flask o framework web Python simile. Attenzione attenta dovrebbe essere data al mantenere compatibilità all'indietro durante il periodo di migrazione, potenzialmente supportando sia token Keystone che Keycloak per un periodo di transizione.
 
-### 3. Integrazione Dashboard
+### 4. Integrazione Keycloak IoTronic UI (Horizon)
 
-**Attività:**
-- Integrare login Keycloak nel dashboard React
-- Implementare OIDC Authorization Code flow
-- Gestione token nel frontend:
-  - Storage sicuro token
-  - Refresh automatico token
-  - Gestione expiration token
-- Logout e cleanup sessione
-- Route protette con controlli autenticazione
+IoTronic UI è costruito su OpenStack Horizon, che si integra nativamente con Keystone. Integrare Keycloak richiede modificare la configurazione Horizon per usare autenticazione OIDC invece di Keystone. Questo coinvolge configurare il backend di autenticazione Horizon per usare il provider OIDC Keycloak, implementare authorization code flow per il login utente, e gestire refresh token e gestione sessioni.
 
-**Componenti React:**
-```typescript
-// Keycloak context provider
-export const KeycloakProvider: React.FC = ({ children }) => {
-  const keycloak = useKeycloak();
-  // Token management, refresh logic
-};
+I file di configurazione UI nella directory `conf_ui/` contengono le impostazioni Horizon che devono essere modificate. L'integrazione dovrebbe fornire un'esperienza utente seamless con gestione redirect appropriata, gestione sessioni, e funzionalità logout. Inoltre, mappatura ruoli utente da Keycloak al sistema di permessi Horizon deve essere implementata per garantire che le funzionalità UI siano propriamente ristrette basate sui ruoli utente.
 
-// Protected route wrapper
-export const ProtectedRoute: React.FC<RouteProps> = ({ ... }) => {
-  const { authenticated } = useAuth();
-  // Route protection logic
-};
-```
+### 5. Aggiornamenti Configurazione Componenti
 
-**Deliverable:** Dashboard modificato con login Keycloak integrato
+Tutti i componenti Stack4Things che attualmente si autenticano con Keystone devono essere aggiornati per usare Keycloak. Questo include aggiornare variabili d'ambiente nei manifest di deployment, modificare file di configurazione, e garantire che comunicazione servizio-to-servizio usi token Keycloak.
 
----
+Il componente IoTronic Wagent, che comunica con IoTronic Conductor, deve essere configurato per ottenere e usare token Keycloak. Questo può coinvolgere implementare un meccanismo di acquisizione token usando client credentials flow, memorizzare token in modo sicuro, e refresharli prima della scadenza.
 
-### 4. Autenticazione API Server
+Crossbar e altri componenti possono anche richiedere aggiornamenti di autenticazione dipendentemente dalla loro implementazione attuale. Ogni componente dovrebbe essere analizzato individualmente per determinare l'estensione delle modifiche richieste.
 
-**Attività:**
-- Modificare `wasmbed-api-server` per:
-  - Accettare token JWT da Keycloak
-  - Validare token usando chiave pubblica Keycloak
-  - Estrarre user claims e ruoli
-  - Middleware per controlli autenticazione
-- Supportare autenticazione multi-mode:
-  - JWT Keycloak per operatori
-  - Certificati X.509 per device (esistente)
-  - Token service account per servizi interni (esistente)
+### 6. Strategia Migrazione e Compatibilità All'indietro
 
-**Implementazione middleware:**
-```rust
-pub async fn auth_middleware(
-    request: Request<Body>,
-    next: Next<Body>,
-) -> Result<Response, AuthError> {
-    // Determinare modalità autenticazione
-    // Validare token/certificato
-    // Estrarre contesto utente
-    // Allegare a request
-}
-```
+Un aspetto critico di questo progetto è garantire un percorso di migrazione fluido che non interrompa deployment esistenti. La strategia di migrazione dovrebbe includere un periodo di autenticazione dual-mode dove sia token Keystone che Keycloak sono accettati, permettendo migrazione graduale di utenti e servizi.
 
-**Deliverable:** API Server con middleware autenticazione multi-mode
+Questo richiede implementare un layer di traduzione token o adapter che può validare token da entrambi i sistemi, potenzialmente traducendo token Keystone a token Keycloak o implementando un'interfaccia di autenticazione unificata che supporta entrambi i provider. La strategia dovrebbe anche includere procedure di rollback e passi di migrazione chiari documentati per operatori.
 
----
+### 7. Testing e Validazione
 
-### 5. Integrazione Kubernetes RBAC
-
-**Attività:**
-- Configurare OIDC authenticator Kubernetes per Keycloak
-- Mapping ruoli Keycloak → Kubernetes RBAC Roles
-- Assegnazione ruoli dinamica basata su gruppi Keycloak
-- Policy engine che combina:
-  - Permessi Keycloak
-  - Politiche Kubernetes RBAC
-  - Capabilities device
-- Audit logging di tutte le decisioni di autorizzazione
-
-**Componenti:**
-```yaml
-# Configurazione Kubernetes API Server OIDC
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kube-apiserver-config
-data:
-  oidc-issuer-url: "https://keycloak.example.com/realms/retrospect"
-  oidc-client-id: "retrospect-k8s"
-  oidc-username-claim: "preferred_username"
-  oidc-groups-claim: "groups"
-```
-
-**Deliverable:** Integrazione Kubernetes RBAC con Keycloak
-
----
-
-### 6. Estensione Gateway Controller
-
-**Attività:**
-- Estendere Gateway Controller per supportare autenticazione Keycloak
-- Modificare chiamate client S4T per usare token Keycloak quando necessario
-- Gestione token per operazioni Stack4Things
-- Integrazione con IoTronic usando token Keycloak
-
-**Modifiche a Gateway Controller:**
-```rust
-pub struct GatewayController {
-    client: Client,
-    keycloak_client: KeycloakClient, // Nuovo
-    // ... campi esistenti
-}
-
-impl GatewayController {
-    async fn reconcile_with_auth(&self, gateway: Gateway) -> Result<()> {
-        // Ottenere token Keycloak per operazioni S4T
-        let token = self.keycloak_client.get_token().await?;
-        // Usare token per chiamate API IoTronic
-    }
-}
-```
-
-**Deliverable:** Gateway Controller esteso con supporto Keycloak
-
----
-
-### 7. Integrazione Device Controller (Opzionale)
-
-**Attività:**
-- Integrare Keycloak per gestione identità device
-- Linking certificati device con identità Keycloak device
-- Autorizzazione avanzata basata su ruoli Keycloak device
-- Revoca coordinata tra CA e Keycloak
-
-**Deliverable:** Integrazione Device Controller con Keycloak (opzionale)
+Testing comprensivo deve essere eseguito per garantire che tutta la funzionalità Stack4Things funzioni correttamente con autenticazione Keycloak. Questo include testare endpoint API, workflow UI, deployment plugin, gestione dispositivi, e tutte le altre funzionalità Stack4Things. Testing di performance dovrebbe verificare che l'overhead di autenticazione sia accettabile, e testing di sicurezza dovrebbe validare validazione token, gestione scadenza, e enforcement autorizzazione.
 
 ---
 
@@ -238,261 +98,173 @@ impl GatewayController {
 
 ```mermaid
 graph TB
-    subgraph Frontend["Frontend Layer"]
-        Dashboard["React Dashboard"]
-        KeycloakLogin["Keycloak Login<br/>- OIDC Auth Code Flow<br/>- Token Management"]
-        Dashboard --> KeycloakLogin
-    end
-    
-    subgraph Middleware["RETROSPECT Middleware"]
-        subgraph API["API Server"]
-            AuthMW["Unified Auth Middleware<br/>- Keycloak JWT<br/>- Device Certificates<br/>- Service Accounts"]
+    subgraph K8s["Kubernetes Cluster"]
+        subgraph KeycloakNS["keycloak namespace"]
+            Keycloak["Keycloak StatefulSet<br/>- PostgreSQL Database<br/>- Realm: stack4things<br/>- OIDC/OAuth2 Endpoints"]
         end
         
-        subgraph Controllers["Controllers"]
-            GC["Gateway Controller<br/>(Keycloak)"]
-            DC["Device Controller<br/>(Certificates)"]
-            AC["App Controller<br/>(Service Account)"]
+        subgraph S4TNS["Stack4Things namespace"]
+            subgraph Conductor["IoTronic Conductor"]
+                API["API Server<br/>- Keycloak Auth Middleware<br/>- JWT Validation<br/>- Role Extraction"]
+            end
+            
+            subgraph UI["IoTronic UI"]
+                Horizon["Horizon Dashboard<br/>- Keycloak OIDC Login<br/>- Token Management<br/>- SSO"]
+            end
+            
+            subgraph Wagent["IoTronic Wagent"]
+                WAgent["WAMP Agent<br/>- Keycloak Token Client<br/>- Service Account Auth"]
+            end
+            
+            Crossbar["Crossbar WAMP Router"]
+            RabbitMQ["RabbitMQ"]
+            DB["MariaDB"]
         end
         
-        API --> Controllers
-        GC --> GC
-        DC --> DC
-        AC --> AC
-    end
-    
-    subgraph Keycloak["Keycloak Identity Provider"]
-        Realm["Realm: retrospect"]
-        Clients["Clients<br/>- Dashboard<br/>- API Server<br/>- K8s"]
-        Roles["Roles & Permissions"]
-        Realm --> Clients
-        Realm --> Roles
-    end
-    
-    subgraph K8s["Kubernetes"]
-        APIServer["API Server<br/>- OIDC Authenticator<br/>- RBAC Integration"]
-        CRDs["CRDs<br/>(Device/Gateway/App)"]
-        APIServer --> CRDs
-    end
-    
-    subgraph S4T["Stack4Things"]
-        IoTronic["IoTronic"]
-        WAMP["WAMP Router"]
-        IoTronic --> WAMP
+        subgraph IstioNS["istio-system namespace"]
+            IstioGateway["Istio Ingress Gateway"]
+        end
     end
     
     subgraph Edge["Edge Devices"]
-        LR["Lightning-Rod"]
-        Device["IoT Devices"]
-        LR --> Device
+        LR["Lightning-Rod<br/>- WebSocket Tunnel<br/>- Plugin Execution"]
     end
     
-    Frontend -->|OIDC Login| Keycloak
-    Keycloak -->|JWT Token| Frontend
-    Frontend -->|API Call + JWT| API
-    API -->|Validate Token| Keycloak
-    Controllers -->|K8s Operations| K8s
-    K8s -->|OIDC Auth| Keycloak
-    GC -->|S4T Operations| S4T
-    S4T -->|Commands| Edge
+    User -->|1. Login via OIDC| Horizon
+    Horizon -->|2. Authorization Code| Keycloak
+    Keycloak -->|3. JWT Token| Horizon
+    Horizon -->|4. API Call + JWT| API
+    API -->|5. Validate Token| Keycloak
+    Keycloak -->|6. Token Valid + Claims| API
+    API -->|7. WAMP Command| Crossbar
+    Crossbar -->|8. WebSocket| LR
+    WAgent -->|9. Service Token| Keycloak
+    WAgent -->|10. Authenticated Request| API
 ```
 
-### Diagramma Flusso Autenticazione Multi-Mode
-
-```mermaid
-sequenceDiagram
-    participant User as Operatore Umano
-    participant Dashboard as Dashboard
-    participant Keycloak as Keycloak
-    participant API as API Server
-    participant MW as Auth Middleware
-    participant Controller as Controllers
-    
-    Note over User,Keycloak: Autenticazione Operatore (Keycloak OIDC)
-    User->>Dashboard: 1. Accesso Dashboard
-    Dashboard->>Keycloak: 2. Redirect a Login
-    Keycloak->>User: 3. Form Login
-    User->>Keycloak: 4. Credenziali
-    Keycloak->>Dashboard: 5. Authorization Code
-    Dashboard->>Keycloak: 6. Exchange Code for Token
-    Keycloak->>Dashboard: 7. JWT Access Token + Refresh Token
-    
-    Note over Dashboard,Controller: Richiesta API con Autenticazione
-    Dashboard->>API: 8. API Request + JWT Token
-    API->>MW: 9. Valida Request
-    MW->>Keycloak: 10. Valida JWT Token
-    Keycloak->>MW: 11. Token Valido + Claims
-    MW->>API: 12. Auth Context
-    API->>Controller: 13. Richiesta Autorizzata
-    Controller->>API: 14. Response
-    API->>Dashboard: 15. Response
-    
-    Note over Dashboard,Keycloak: Token Refresh (prima expiration)
-    Dashboard->>Keycloak: 16. Refresh Token Request
-    Keycloak->>Dashboard: 17. Nuovo Access Token
-```
-
-### Architettura Autenticazione Multi-Mode
-
-```mermaid
-graph TB
-    subgraph Request["Request Incoming"]
-        HTTP["HTTP Request"]
-    end
-    
-    subgraph AuthMW["Unified Auth Middleware"]
-        Detector["Auth Mode Detector"]
-        KeycloakAuth["Keycloak Authenticator<br/>- JWT Validation<br/>- Role Extraction"]
-        CertAuth["Certificate Validator<br/>- X.509 Validation<br/>- Device Identity"]
-        SAAuth["Service Account Validator<br/>- K8s Token Validation"]
-    end
-    
-    subgraph Keycloak["Keycloak"]
-        Realm["Realm"]
-        Validation["Token Validation"]
-    end
-    
-    subgraph PKI["PKI"]
-        CA["Certificate Authority"]
-        CertVal["Certificate Validation"]
-    end
-    
-    subgraph K8s["Kubernetes"]
-        SA["Service Accounts"]
-        TokenVal["Token Validation"]
-    end
-    
-    HTTP --> Detector
-    Detector -->|JWT Token| KeycloakAuth
-    Detector -->|X.509 Cert| CertAuth
-    Detector -->|SA Token| SAAuth
-    
-    KeycloakAuth --> Keycloak
-    Keycloak --> Validation
-    Validation --> KeycloakAuth
-    
-    CertAuth --> PKI
-    PKI --> CA
-    CA --> CertVal
-    CertVal --> CertAuth
-    
-    SAAuth --> K8s
-    K8s --> SA
-    SA --> TokenVal
-    TokenVal --> SAAuth
-    
-    KeycloakAuth -->|Auth Context| API
-    CertAuth -->|Auth Context| API
-    SAAuth -->|Auth Context| API
-```
-
-### Flusso Integrazione Kubernetes RBAC
+### Diagramma Flusso Autenticazione
 
 ```mermaid
 sequenceDiagram
     participant User as Operatore
-    participant Dashboard as Dashboard
+    participant UI as IoTronic UI
     participant Keycloak as Keycloak
-    participant K8sAPI as K8s API Server
-    participant Controller as RETROSPECT Controller
-    participant CRD as CRD Resource
+    participant API as IoTronic Conductor
+    participant WAgent as IoTronic Wagent
+    participant Crossbar as Crossbar
+    participant LR as Lightning-Rod
     
-    User->>Dashboard: 1. Create/Update Resource
-    Dashboard->>Keycloak: 2. Get JWT Token
-    Keycloak->>Dashboard: 3. JWT con Groups/Roles
-    Dashboard->>K8sAPI: 4. kubectl apply + JWT Token
-    K8sAPI->>Keycloak: 5. Valida JWT Token
-    Keycloak->>K8sAPI: 6. Token Valido + Groups: ["admin", "operators"]
-    K8sAPI->>K8sAPI: 7. Mappa Groups su RBAC Roles
-    K8sAPI->>K8sAPI: 8. Controlla Permessi RBAC
-    K8sAPI->>CRD: 9. Create/Update CRD
-    CRD->>Controller: 10. Reconcile Event
-    Controller->>Controller: 11. Process Resource
-    Controller->>CRD: 12. Update Status
+    Note over User,Keycloak: Flusso Autenticazione Utente
+    User->>UI: 1. Accesso Dashboard
+    UI->>Keycloak: 2. Redirect a Login Keycloak
+    Keycloak->>User: 3. Form Login
+    User->>Keycloak: 4. Credenziali
+    Keycloak->>UI: 5. Authorization Code
+    UI->>Keycloak: 6. Exchange Code for Token
+    Keycloak->>UI: 7. JWT Access Token + Refresh Token
+    
+    Note over UI,API: Flusso Richiesta API
+    UI->>API: 8. API Request + JWT Token
+    API->>Keycloak: 9. Valida JWT Token (JWKS)
+    Keycloak->>API: 10. Token Valido + Claims
+    API->>API: 11. Controlla Ruoli/Permessi
+    API->>UI: 12. API Response
+    
+    Note over WAgent,LR: Autenticazione Servizio-to-Servizio
+    WAgent->>Keycloak: 13. Client Credentials Request
+    Keycloak->>WAgent: 14. Service Token
+    WAgent->>API: 15. API Call + Service Token
+    API->>Keycloak: 16. Valida Service Token
+    API->>Crossbar: 17. WAMP Command
+    Crossbar->>LR: 18. WebSocket Message
 ```
 
-### Integrazione Gateway Controller con Stack4Things
+### Architettura Deployment Kubernetes
 
 ```mermaid
 graph LR
-    subgraph K8s["Kubernetes"]
-        GC["Gateway Controller"]
-        GatewayCRD["Gateway CRD"]
-        GC --> GatewayCRD
+    subgraph Config["Configurazione"]
+        KeycloakConfig["Keycloak Realm Config<br/>- Clients<br/>- Roles<br/>- Policies"]
+        ConductorConfig["Conductor Config<br/>- Keycloak URL<br/>- JWKS Endpoint<br/>- Client Credentials"]
+        UIConfig["UI Config<br/>- OIDC Settings<br/>- Keycloak Realm"]
     end
     
-    subgraph Keycloak["Keycloak"]
-        Realm["Realm"]
-        Token["Service Token"]
+    subgraph Deployments["Kubernetes Deployments"]
+        KeycloakDep["Keycloak StatefulSet<br/>+ PostgreSQL"]
+        ConductorDep["IoTronic Conductor<br/>Deployment"]
+        UIDep["IoTronic UI<br/>Deployment"]
+        WAgentDep["IoTronic Wagent<br/>Deployment"]
     end
     
-    subgraph S4T["Stack4Things"]
-        IoTronic["IoTronic API"]
-        WAMP["WAMP Router"]
-        IoTronic --> WAMP
+    subgraph Services["Kubernetes Services"]
+        KeycloakSvc["keycloak:8080"]
+        ConductorSvc["iotronic-conductor:8812"]
+        UISvc["iotronic-ui:80"]
     end
     
-    subgraph Edge["Edge"]
-        LR["Lightning-Rod"]
-        Plugin["Plugins"]
-        LR --> Plugin
+    subgraph Secrets["Kubernetes Secrets"]
+        KeycloakSecret["Keycloak Admin<br/>Credentials"]
+        ClientSecret["OIDC Client<br/>Secrets"]
     end
     
-    GC -->|1. Get Keycloak Token| Keycloak
-    Keycloak -->|2. JWT Token| GC
-    GC -->|3. API Call with JWT| IoTronic
-    IoTronic -->|4. Validate Token| Keycloak
-    Keycloak -->|5. Authorized| IoTronic
-    IoTronic -->|6. Deploy Plugin| WAMP
-    WAMP -->|7. WebSocket Command| LR
-    LR -->|8. Execute| Plugin
+    Config --> Deployments
+    Secrets --> Deployments
+    Deployments --> Services
 ```
 
 ---
 
 ## Stack Tecnologico
 
-- **Linguaggi:** Rust (middleware), TypeScript/React (dashboard)
-- **Framework:** Keycloak Admin API, librerie OIDC/OAuth2
-- **Protocolli:** OIDC, OAuth2, JWT, TLS 1.3, mTLS
-- **Infrastruttura:** Kubernetes, Keycloak
-- **Tooling:** kubectl, Helm, GitOps, Rust toolchain
+- **Container Orchestration:** Kubernetes (K3s), Helm
+- **Identity Provider:** Keycloak
+- **Service Mesh:** Istio (per ingress e traffic management)
+- **Load Balancer:** MetalLB
+- **Linguaggi di Programmazione:** Python (componenti IoTronic), JavaScript (UI)
+- **Protocolli:** OIDC, OAuth2, JWT, WAMP, WebSocket
+- **Database:** PostgreSQL (per Keycloak), MariaDB (per Stack4Things)
+- **Message Broker:** RabbitMQ
+- **Container Technologies:** Docker, Container images
 
 ---
 
 ## Deliverable Attesi
 
 ### Codice e Implementazione
-1. Middleware autenticazione multi-mode (Rust crate)
-2. Dashboard con login Keycloak integrato
-3. API Server con middleware autenticazione
-4. Estensione Gateway Controller con supporto Keycloak
-5. Integrazione Kubernetes RBAC
+1. Manifest deployment Kubernetes modificati con integrazione Keycloak
+2. Configurazione deployment Keycloak (Helm charts o manifest)
+3. Middleware autenticazione per IoTronic Conductor
+4. Configurazione Horizon modificata per Keycloak OIDC
+5. File di configurazione aggiornati per tutti i componenti Stack4Things
+6. Script e tooling di migrazione
 
 ### Documentazione
-1. Guida configurazione Keycloak per RETROSPECT
-2. Documentazione architettura autenticazione
-3. Documentazione API con endpoint autenticazione
-4. Guida utente dashboard
-5. Guida deployment con setup Keycloak
+1. Documento di analisi dell'integrazione Keystone attuale
+2. Guida configurazione realm Keycloak
+3. Guida deployment per Stack4Things abilitato Keycloak
+4. Guida migrazione da Keystone a Keycloak
+5. Aggiornamenti documentazione API
+6. Guida troubleshooting
 
 ### Testing
-1. Unit test per componenti autenticazione
-2. Test di integrazione: Dashboard → API → Controllers
-3. Test end-to-end con scenario completo
-4. Test di sicurezza (validazione token, expiration, revoca)
-5. Test di performance (token refresh, latenza API)
+1. Test unitari per middleware autenticazione
+2. Test di integrazione per flussi autenticazione Keycloak
+3. Test end-to-end con scenari Stack4Things completi
+4. Test di sicurezza (validazione token, scadenza, revoca)
+5. Test di performance (overhead autenticazione, refresh token)
+6. Test di validazione migrazione
 
 ### Use Case
-1. Deployment multi-operatore con SSO
-2. Scenario multi-tenant con accesso role-based
-3. Integrazione con Identity Provider esterni (Azure AD, Okta)
+1. Deployment multi-operatore con accesso role-based
+2. Integrazione con Identity Provider esterni (LDAP, Active Directory)
+3. Deployment Stack4Things multi-tenant
 
 ---
 
 ## Bibliografia e Riferimenti
 
-### Repository e Documentazione Stack4Things
+### Deployment Kubernetes Stack4Things
+- Repository Deployment Kubernetes Stack4Things: https://github.com/MDSLab/Stack4Things_k3s_deployment.git
 - Stack4Things GitHub: https://github.com/MDSLab/Stack4Things
 - Stack4Things IoTronic API: https://github.com/MDSLab/iotronic
 - Documentazione Lightning-Rod: https://github.com/MDSLab/iotronic-lightningrod
@@ -500,7 +272,7 @@ graph LR
 ### Repository di Integrazione Stack4Things Correlati
 - **Stack4Things SDK for Go** (`https://github.com/MIKE9708/s4t-sdk-go.git`): 
   - SDK Go per interazioni API Stack4Things
-  - Può essere utile come riferimento per integrazione Gateway Controller con Stack4Things
+  - Può essere utile come riferimento per comprendere pattern di autenticazione API
 - **Crossplane Provider per Stack4Things** (`https://github.com/MIKE9708/Provider4_S4T.git`):
   - Implementazione Crossplane Provider per Stack4Things
   - Utile riferimento per comprendere pattern di integrazione API Stack4Things
@@ -530,47 +302,28 @@ graph LR
 - Kubernetes API Server OIDC Authenticator: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens
 - Kubernetes RBAC Authorization: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - Kubernetes Service Accounts: https://kubernetes.io/docs/concepts/security/service-accounts/
-- Kubernetes Admission Controllers: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
+- Kubernetes StatefulSets: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
 
-### Linguaggio di Programmazione Rust
-- Documentazione Ufficiale Rust: https://doc.rust-lang.org/
-- Rust Async Programming: https://rust-lang.github.io/async-book/
-- Rust HTTP Clients:
-  - reqwest: https://docs.rs/reqwest/
-  - hyper: https://hyper.rs/
-- Rust JWT Libraries:
-  - jsonwebtoken: https://docs.rs/jsonwebtoken/
-  - jwt-simple: https://docs.rs/jwt-simple/
-- Rust OAuth2/OIDC Libraries:
-  - oauth2: https://docs.rs/oauth2/
-- Rust Kubernetes Client (kube-rs): https://docs.rs/kube/
-- Rust TLS Libraries:
-  - rustls: https://docs.rs/rustls/
-  - tokio-rustls: https://docs.rs/tokio-rustls/
+### Strumenti Deployment Kubernetes
+- Documentazione Helm: https://helm.sh/docs/
+- Documentazione K3s: https://docs.k3s.io/
+- Documentazione Istio: https://istio.io/latest/docs/
+- Documentazione MetalLB: https://metallb.universe.tf/
 
-### Documentazione React/TypeScript
-- Documentazione Ufficiale React: https://react.dev/
-- Documentazione TypeScript: https://www.typescriptlang.org/docs/
-- Integrazione React Keycloak:
-  - @react-keycloak/web: https://www.npmjs.com/package/@react-keycloak/web
-  - keycloak-js: https://www.npmjs.com/package/keycloak-js
-- React Router: https://reactrouter.com/
-
-### TLS e Gestione Certificati
-- RFC 8446 - Protocollo TLS 1.3: https://datatracker.ietf.org/doc/html/rfc8446
-- RFC 5280 - Profilo Certificato X.509: https://datatracker.ietf.org/doc/html/rfc5280
-- PKI Best Practices: https://www.keycloak.org/docs/latest/server_admin/#pki
+### Librerie Python
+- Python Requests Library: https://docs.python-requests.org/
+- Python JWT Library: https://pyjwt.readthedocs.io/
+- Python Keycloak Admin Client: https://python-keycloak.readthedocs.io/
+- Flask/WSGI Middleware: https://flask.palletsprojects.com/
 
 ### Risorse Aggiuntive
 - Protocollo WebSocket (RFC 6455): https://datatracker.ietf.org/doc/html/rfc6455
 - Documentazione Protocollo WAMP: https://wamp-proto.org/
-- CBOR Encoding (RFC 7049): https://datatracker.ietf.org/doc/html/rfc7049
-- Documentazione WebAssembly: https://webassembly.org/
-- Wasmtime Runtime: https://wasmtime.dev/
+- Documentazione OpenStack Horizon: https://docs.openstack.org/horizon/
+- Documentazione OpenStack Keystone: https://docs.openstack.org/keystone/ (per comprendere implementazione attuale)
 
 ---
 
 ## Note
 
-Questo progetto si concentra sull'integrazione di Keycloak in tutto lo stack middleware RETROSPECT, fornendo unified identity and access management mantenendo i meccanismi di sicurezza esistenti per device e servizi interni.
-
+Questo progetto si concentra sulla migrazione di Stack4Things da autenticazione Keystone a Keycloak all'interno di un contesto di deployment Kubernetes. Il lavoro coinvolge comprensione approfondita dei pattern di deployment Kubernetes, protocolli OIDC/OAuth2, e architettura Stack4Things. Gli studenti acquisiranno esperienza pratica con gestione identità moderna, operazioni Kubernetes, e pattern di autenticazione microservizi.
