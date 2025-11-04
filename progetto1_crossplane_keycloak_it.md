@@ -6,8 +6,6 @@
 
 **Livello:** Avanzato (Tesi Magistrale)
 
-**Durata Stimata:** 4-6 mesi
-
 **Competenze Richieste:** Go, Kubernetes, Crossplane SDK, Keycloak, OIDC/OAuth2, Stack4Things API
 
 ---
@@ -350,59 +348,65 @@ graph TB
 
 ---
 
-## Valutazione e Metriche
-
-- **Funzionalità (40%):** Autenticazione funzionante, token refresh, migrazione
-- **Qualità Codice (20%):** Test coverage, code review, best practices
-- **Documentazione (15%):** Guide, API docs, documentazione migrazione
-- **Testing (15%):** Unit, integration, e2e tests
-- **Presentazione (10%):** Demo, presentazione risultati
-
----
-
 ## Bibliografia e Riferimenti
 
-- `RETROSPECT_Deliverable_D1_3_v2/main_final.tex` - Sezione "Kubernetes + S4T + Crossplane"
-- `AssemblingSmartCPSs/chapter8.tex` - Autenticazione Stack4Things con Keystone
-- `AssemblingSmartCPSs/chapter11.tex` - Uso Keycloak in SLICES
-- Documentazione Crossplane: https://crossplane.io/docs
-- Documentazione Keycloak: https://www.keycloak.org/documentation
+### Documentazione RETROSPECT e Stack4Things
+- `RETROSPECT_Deliverable_D1_3_v2/main_final.tex` - Sezione "Kubernetes + S4T + Crossplane: Unified Orchestration"
+- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Sezione "Kubernetes and Stack4Things Integration"
+- `AssemblingSmartCPSs/chapter8.tex` - Meccanismi di autenticazione Stack4Things con Keystone
+- `AssemblingSmartCPSs/chapter4.tex` - Architettura Stack4Things e servizio IoTronic
+- `AssemblingSmartCPSs/chapter11.tex` - Uso Keycloak nel progetto SLICES
+- `RETROSPECT_Deliverable_D2_2_v2/main_final.tex` - Sezione "Implementation of Stack4Things Client Library"
+- Stack4Things GitHub: https://github.com/MDSLab/Stack4Things
+- Documentazione API IoTronic Stack4Things: https://github.com/MDSLab/iotronic
 
----
+### Documentazione Crossplane
+- Documentazione Ufficiale Crossplane: https://crossplane.io/docs
+- Guida Sviluppo Provider Crossplane: https://crossplane.io/docs/v1.11/concepts/providers
+- Documentazione Crossplane SDK: https://github.com/crossplane/crossplane
+- Configurazione Provider Crossplane: https://crossplane.io/docs/v1.11/concepts/provider-config
+- Resource Reconciliation Crossplane: https://crossplane.io/docs/v1.11/concepts/managed-resources
+- Composition Functions Crossplane: https://crossplane.io/docs/v1.11/concepts/composition-functions
 
-## Timeline e Milestone
+### Documentazione Keycloak
+- Documentazione Ufficiale Keycloak: https://www.keycloak.org/documentation
+- Guida Amministrazione Keycloak Server: https://www.keycloak.org/docs/latest/server_admin/
+- Keycloak Authorization Services: https://www.keycloak.org/docs/latest/authorization_services/
+- Keycloak Admin REST API: https://www.keycloak.org/docs-api/latest/rest-api/
+- Keycloak Java Adapter: https://www.keycloak.org/docs/latest/securing_apps/
+- Configurazione Keycloak OIDC/OAuth2: https://www.keycloak.org/docs/latest/securing_apps/
 
-### Milestone 1 (Mese 1): Analisi e Design
-- Completare analisi Crossplane Provider esistente
-- Design architettura integrazione Keycloak
-- Definire strategia di migrazione
+### Standard e Protocolli OIDC/OAuth2
+- RFC 6749 - OAuth 2.0 Authorization Framework: https://datatracker.ietf.org/doc/html/rfc6749
+- RFC 6750 - OAuth 2.0 Bearer Token Usage: https://datatracker.ietf.org/doc/html/rfc6750
+- RFC 7519 - JSON Web Token (JWT): https://datatracker.ietf.org/doc/html/rfc7519
+- OpenID Connect Core 1.0: https://openid.net/specs/openid-connect-core-1_0.html
+- OAuth 2.0 Device Flow (RFC 8628): https://datatracker.ietf.org/doc/html/rfc8628
+- OAuth 2.0 Token Introspection (RFC 7662): https://datatracker.ietf.org/doc/html/rfc7662
 
-### Milestone 2 (Mese 2-3): Implementazione
-- Configurazione Keycloak
-- Modifiche Crossplane Provider
-- Implementazione adapter IoTronic
+### Documentazione Kubernetes
+- Kubernetes Custom Resource Definitions: https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/
+- Kubernetes Controller Pattern: https://kubernetes.io/docs/concepts/architecture/controller/
+- Autenticazione Kubernetes API Server: https://kubernetes.io/docs/reference/access-authn-authz/authentication/
+- Autorizzazione Kubernetes RBAC: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+- Kubernetes Service Accounts: https://kubernetes.io/docs/concepts/security/service-accounts/
 
-### Milestone 3 (Mese 4): Testing e Integrazione
-- Test unitari e di integrazione
-- Test end-to-end
-- Test di performance e sicurezza
+### Linguaggio di Programmazione Go
+- Documentazione Ufficiale Go: https://go.dev/doc/
+- Go OAuth2 Client Library: https://pkg.go.dev/golang.org/x/oauth2
+- Go JWT Libraries: https://github.com/golang-jwt/jwt
+- Go HTTP Client: https://pkg.go.dev/net/http
 
-### Milestone 4 (Mese 5-6): Migrazione e Documentazione
-- Sviluppo tooling migrazione
-- Documentazione completa
-- Test finale e validazione
+### Librerie Python (per Adapter IoTronic)
+- Python Requests Library: https://docs.python-requests.org/
+- Python JWT Library: https://pyjwt.readthedocs.io/
+- Python Keycloak Admin Client: https://python-keycloak.readthedocs.io/
 
----
-
-## Criteri di Successo
-
-1. ✅ Crossplane Provider autentica correttamente con Keycloak
-2. ✅ Tutte le chiamate API IoTronic funzionano con token Keycloak
-3. ✅ Token refresh funziona automaticamente
-4. ✅ Migrazione da Keystone è possibile senza downtime
-5. ✅ Tutti i test passano (unit, integration, e2e)
-6. ✅ Documentazione è completa e accurata
-7. ✅ Performance è accettabile (<100ms overhead per autenticazione)
+### Risorse Aggiuntive
+- Documentazione OpenStack Keystone: https://docs.openstack.org/keystone/
+- Protocollo WebSocket (RFC 6455): https://datatracker.ietf.org/doc/html/rfc6455
+- Documentazione Protocollo WAMP: https://wamp-proto.org/
+- Integrazione WAMP Stack4Things: https://github.com/MDSLab/Stack4Things/wiki
 
 ---
 

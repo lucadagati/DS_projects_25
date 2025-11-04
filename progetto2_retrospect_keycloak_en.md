@@ -6,8 +6,6 @@
 
 **Level:** Advanced (Master's Thesis)
 
-**Estimated Duration:** 4-6 months
-
 **Required Skills:** Rust, Kubernetes, Keycloak, OIDC/OAuth2, TLS/mTLS, RBAC
 
 ---
@@ -494,63 +492,90 @@ graph LR
 
 ---
 
-## Evaluation and Metrics
-
-- **Functionality (40%):** Working authentication, SSO, multi-mode support
-- **Code Quality (20%):** Test coverage, code review, Rust best practices
-- **Documentation (15%):** Guides, API docs, architecture documentation
-- **Testing (15%):** Unit, integration, e2e, security tests
-- **Presentation (10%):** Demo, presentation of results
-
----
-
 ## Bibliography and References
 
+### RETROSPECT Middleware Documentation
 - `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "Authentication and Authorization"
-- `retrospect/retrospect/docs/security/security-overview.md`
 - `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "Kubernetes and Stack4Things Integration"
-- Keycloak documentation: https://www.keycloak.org/documentation
-- Kubernetes OIDC authenticator: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens
+- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "Public Key Infrastructure (PKI)"
+- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "TLS 1.3 and Mutual TLS (mTLS)"
+- `retrospect/retrospect/docs/security/security-overview.md` - Security architecture overview
+- `retrospect/retrospect/docs/architecture/system-overview.md` - System architecture documentation
+- `retrospect/retrospect/crates/wasmbed-gateway-controller/src/main.rs` - Gateway Controller implementation
+- `retrospect/retrospect/crates/wasmbed-device-controller/src/main.rs` - Device Controller implementation
+- `retrospect/retrospect/crates/wasmbed-application-controller/src/main.rs` - Application Controller implementation
+- `retrospect/retrospect/crates/wasmbed-k8s-resource/src/lib.rs` - CRD definitions
 
----
+### Stack4Things Documentation
+- `AssemblingSmartCPSs/chapter4.tex` - Stack4Things architecture and IoTronic service
+- `AssemblingSmartCPSs/chapter8.tex` - Stack4Things authentication with Keystone
+- `AssemblingSmartCPSs/chapter14.tex` - Plugin system and Lightning-Rod
+- Stack4Things GitHub: https://github.com/MDSLab/Stack4Things
+- Stack4Things IoTronic API: https://github.com/MDSLab/iotronic
+- Lightning-Rod Documentation: https://github.com/MDSLab/iotronic-lightningrod
 
-## Timeline and Milestones
+### Keycloak Documentation
+- Keycloak Official Documentation: https://www.keycloak.org/documentation
+- Keycloak Server Administration Guide: https://www.keycloak.org/docs/latest/server_admin/
+- Keycloak Authorization Services: https://www.keycloak.org/docs/latest/authorization_services/
+- Keycloak Admin REST API: https://www.keycloak.org/docs-api/latest/rest-api/
+- Keycloak JavaScript Adapter: https://www.keycloak.org/docs/latest/securing_apps/#_javascript_adapter
+- Keycloak OIDC/OAuth2 Configuration: https://www.keycloak.org/docs/latest/securing_apps/
+- Keycloak Service Account Configuration: https://www.keycloak.org/docs/latest/server_admin/#service-accounts
 
-### Milestone 1 (Month 1): Analysis and Design
-- Complete analysis of current authentication mechanisms
-- Design Keycloak integration architecture
-- Define multi-mode authentication strategy
+### OIDC/OAuth2 Standards and Protocols
+- RFC 6749 - OAuth 2.0 Authorization Framework: https://datatracker.ietf.org/doc/html/rfc6749
+- RFC 6750 - OAuth 2.0 Bearer Token Usage: https://datatracker.ietf.org/doc/html/rfc6750
+- RFC 7519 - JSON Web Token (JWT): https://datatracker.ietf.org/doc/html/rfc7519
+- RFC 7517 - JSON Web Key (JWK): https://datatracker.ietf.org/doc/html/rfc7517
+- OpenID Connect Core 1.0: https://openid.net/specs/openid-connect-core-1_0.html
+- OpenID Connect Discovery 1.0: https://openid.net/specs/openid-connect-discovery-1_0.html
+- OAuth 2.0 Token Introspection (RFC 7662): https://datatracker.ietf.org/doc/html/rfc7662
+- OAuth 2.0 Device Flow (RFC 8628): https://datatracker.ietf.org/doc/html/rfc8628
 
-### Milestone 2 (Month 2-3): Core Implementation
-- Keycloak configuration
-- Authentication middleware implementation
-- Dashboard integration
-- API Server modifications
+### Kubernetes Documentation
+- Kubernetes Custom Resource Definitions: https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/
+- Kubernetes Controller Pattern: https://kubernetes.io/docs/concepts/architecture/controller/
+- Kubernetes API Server OIDC Authenticator: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens
+- Kubernetes RBAC Authorization: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+- Kubernetes Service Accounts: https://kubernetes.io/docs/concepts/security/service-accounts/
+- Kubernetes Admission Controllers: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
 
-### Milestone 3 (Month 4): Controller Integration
-- Gateway Controller extension
-- Kubernetes RBAC integration
-- Token management implementation
+### Rust Programming Language
+- Rust Official Documentation: https://doc.rust-lang.org/
+- Rust Async Programming: https://rust-lang.github.io/async-book/
+- Rust HTTP Clients:
+  - reqwest: https://docs.rs/reqwest/
+  - hyper: https://hyper.rs/
+- Rust JWT Libraries:
+  - jsonwebtoken: https://docs.rs/jsonwebtoken/
+  - jwt-simple: https://docs.rs/jwt-simple/
+- Rust OAuth2/OIDC Libraries:
+  - oauth2: https://docs.rs/oauth2/
+- Rust Kubernetes Client (kube-rs): https://docs.rs/kube/
+- Rust TLS Libraries:
+  - rustls: https://docs.rs/rustls/
+  - tokio-rustls: https://docs.rs/tokio-rustls/
 
-### Milestone 4 (Month 5-6): Testing and Documentation
-- Complete testing suite
-- Documentation
-- Performance optimization
-- Final validation
+### React/TypeScript Documentation
+- React Official Documentation: https://react.dev/
+- TypeScript Documentation: https://www.typescriptlang.org/docs/
+- React Keycloak Integration:
+  - @react-keycloak/web: https://www.npmjs.com/package/@react-keycloak/web
+  - keycloak-js: https://www.npmjs.com/package/keycloak-js
+- React Router: https://reactrouter.com/
 
----
+### TLS and Certificate Management
+- RFC 8446 - TLS 1.3 Protocol: https://datatracker.ietf.org/doc/html/rfc8446
+- RFC 5280 - X.509 Certificate Profile: https://datatracker.ietf.org/doc/html/rfc5280
+- PKI Best Practices: https://www.keycloak.org/docs/latest/server_admin/#pki
 
-## Success Criteria
-
-1. ✅ Keycloak successfully configured and integrated
-2. ✅ Operators can authenticate via Keycloak in dashboard
-3. ✅ Multi-mode authentication works (Keycloak + certificates + service accounts)
-4. ✅ SSO works between dashboard and API
-5. ✅ Kubernetes RBAC integration functional
-6. ✅ Gateway Controller uses Keycloak tokens for S4T operations
-7. ✅ All tests pass (unit, integration, e2e, security)
-8. ✅ Performance is acceptable (<50ms overhead for authentication)
-9. ✅ Documentation is complete and accurate
+### Additional Resources
+- WebSocket Protocol (RFC 6455): https://datatracker.ietf.org/doc/html/rfc6455
+- WAMP Protocol Documentation: https://wamp-proto.org/
+- CBOR Encoding (RFC 7049): https://datatracker.ietf.org/doc/html/rfc7049
+- WebAssembly Documentation: https://webassembly.org/
+- Wasmtime Runtime: https://wasmtime.dev/
 
 ---
 
