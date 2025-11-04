@@ -4,8 +4,6 @@
 
 **Titolo:** Crossplane Provider per Stack4Things: Migrazione da Keystone a Keycloak per Autenticazione Unificata
 
-**Livello:** Avanzato (Tesi Magistrale)
-
 **Competenze Richieste:** Go, Kubernetes, Crossplane SDK, Keycloak, OIDC/OAuth2, Stack4Things API
 
 ---
@@ -44,16 +42,19 @@ Modificare il Crossplane Provider per Stack4Things per utilizzare Keycloak come 
 ### 1. Analisi del Crossplane Provider Esistente
 
 **Attività:**
-- Analizzare il codice del Crossplane Provider per Stack4Things
-- Identificare dove viene utilizzato Keystone:
-  - Autenticazione iniziale
-  - Generazione token
-  - Validazione token
-  - Controlli di autorizzazione
-- Mappare le chiamate API IoTronic che richiedono autenticazione
-- Documentare il flusso di autenticazione attuale
+- Clonare e analizzare repository Crossplane Provider esistente (`https://github.com/MIKE9708/Provider4_S4T.git`)
+- Clonare e analizzare repository Stack4Things SDK (`https://github.com/MIKE9708/s4t-sdk-go.git`)
+- Identificare punti di utilizzo Keystone:
+  - Autenticazione iniziale nello SDK (`pkg/api/client.go::Authenticate()`)
+  - Generazione token (endpoint `/v3/auth/tokens`)
+  - Memorizzazione e uso token (header `X-Auth-Token`)
+  - Struttura configurazione (`pkg/read_conf/configuration.go`)
+- Mappare chiamate API IoTronic che richiedono autenticazione (tutti i metodi in `board_api.go`, `plugin_api.go`, `service_api.go`)
+- Analizzare implementazioni controller Provider (`internal/controller/*.go`)
+- Documentare flusso autenticazione attuale e dipendenze
+- Identificare tutti i file che richiedono modifica
 
-**Deliverable:** Documento di analisi con mappatura Keystone → Keycloak
+**Deliverable:** Documento di analisi con mappatura Keystone → Keycloak, incluse posizioni file specifiche e punti di modifica
 
 ---
 
@@ -83,9 +84,20 @@ Modificare il Crossplane Provider per Stack4Things per utilizzare Keycloak come 
 
 **Componenti da modificare:**
 
-#### 3.1 Authentication Package
+#### 3.1 Pacchetto Autenticazione SDK (`s4t-sdk-go`)
+Lo SDK attualmente usa autenticazione Keystone. Modificare `pkg/api/client.go`:
+
+**Implementazione attuale (Keystone):**
 ```go
-// Nuovo package: pkg/auth/keycloak
+func (c *Client) Authenticate(client *Client, auth_req *read_config.AuthRequest_1) (string, error) {
+    // POST a /v3/auth/tokens (endpoint Keystone)
+    // Restituisce header X-Subject-Token
+}
+```
+
+**Nuova implementazione (Keycloak):**
+```go
+// Nuovo pacchetto: pkg/auth/keycloak
 package keycloak
 
 type KeycloakAuthenticator struct {
@@ -95,25 +107,31 @@ type KeycloakAuthenticator struct {
     httpClient   *http.Client
 }
 
-func (k *KeycloakAuthenticator) Authenticate(ctx context.Context) (*Token, error)
+func (k *KeycloakAuthenticator) Authenticate(ctx context.Context) (*Token, error) {
+    // POST a {realmURL}/protocol/openid-connect/token
+    // Usare client credentials flow
+    // Restituisce JWT access token + refresh token
+}
 func (k *KeycloakAuthenticator) RefreshToken(ctx context.Context, refreshToken string) (*Token, error)
 func (k *KeycloakAuthenticator) ValidateToken(ctx context.Context, token string) error
 ```
 
-#### 3.2 Provider Configuration
-- Aggiungere configurazione Keycloak nel ProviderConfig:
+**Modificare metodi API client** per usare `Authorization: Bearer <jwt_token>` invece di header `X-Auth-Token`.
+
+#### 3.2 Configurazione Provider (`Provider4_S4T`)
+- Aggiungere configurazione Keycloak in ProviderConfig CRD (`api/v1alpha1/providerconfig_types.go`):
   - URL server Keycloak
   - Nome realm
-  - Client ID e Secret
-  - Token endpoint
-  - Refresh token endpoint
+  - Client ID e Secret (memorizzati in Kubernetes Secrets)
+  - Endpoint token
+  - Endpoint refresh token
 
-#### 3.3 Modifica IoTronic Client
-- Modificare il client IoTronic per:
+#### 3.3 Modifiche Controller (`Provider4_S4T/internal/controller/`)
+- Modificare controller (board_controller.go, plugin_controller.go, service_controller.go) per:
+  - Inizializzare autenticatore Keycloak da ProviderConfig
   - Usare token JWT da Keycloak invece di token Keystone
-  - Includere token nell'header Authorization
-  - Gestire expiration token e refresh automatico
-  - Gestire errori di autenticazione
+  - Gestire scadenza token e refresh automatico
+  - Gestire errori di autenticazione e retry
 
 **Deliverable:** Codice modificato del Crossplane Provider con autenticazione Keycloak
 
@@ -350,15 +368,26 @@ graph TB
 
 ## Bibliografia e Riferimenti
 
-### Documentazione RETROSPECT e Stack4Things
-- `RETROSPECT_Deliverable_D1_3_v2/main_final.tex` - Sezione "Kubernetes + S4T + Crossplane: Unified Orchestration"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Sezione "Kubernetes and Stack4Things Integration"
-- `AssemblingSmartCPSs/chapter8.tex` - Meccanismi di autenticazione Stack4Things con Keystone
-- `AssemblingSmartCPSs/chapter4.tex` - Architettura Stack4Things e servizio IoTronic
-- `AssemblingSmartCPSs/chapter11.tex` - Uso Keycloak nel progetto SLICES
-- `RETROSPECT_Deliverable_D2_2_v2/main_final.tex` - Sezione "Implementation of Stack4Things Client Library"
+### Repository e Documentazione Stack4Things
 - Stack4Things GitHub: https://github.com/MDSLab/Stack4Things
 - Documentazione API IoTronic Stack4Things: https://github.com/MDSLab/iotronic
+
+### Repository di Implementazione Esistenti (Da Modificare)
+- **Stack4Things SDK for Go** (`https://github.com/MIKE9708/s4t-sdk-go.git`): 
+  - Libreria SDK Go per interagire con l'API Stack4Things IoTronic
+  - Implementa attualmente autenticazione Keystone (endpoint `/v3/auth/tokens`)
+  - Usa header `X-Auth-Token` per le richieste API
+  - Fornisce metodi client per gestione Board, Plugin e Service
+  - **Modifica richiesta**: Sostituire autenticazione Keystone con Keycloak OIDC/OAuth2 client credentials flow
+  - **File chiave da modificare**: `pkg/api/client.go` (logica autenticazione), `pkg/read_conf/configuration.go` (struttura richiesta auth)
+
+- **Crossplane Provider per Stack4Things** (`https://github.com/MIKE9708/Provider4_S4T.git`):
+  - Provider Kubernetes Crossplane che implementa risorse Stack4Things come CRD
+  - Definisce CRD per risorse Board, Plugin e Service
+  - Usa `s4t-sdk-go` come dipendenza per interazioni API Stack4Things
+  - Implementa controller Kubernetes per riconciliazione risorse
+  - **Modifica richiesta**: Aggiornare configurazione Provider per usare credenziali Keycloak, modificare uso SDK per gestire token Keycloak
+  - **File chiave da modificare**: `internal/controller/*.go` (implementazioni controller), `api/v1alpha1/*.go` (definizioni CRD e ProviderConfig)
 
 ### Documentazione Crossplane
 - Documentazione Ufficiale Crossplane: https://crossplane.io/docs

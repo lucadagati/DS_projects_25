@@ -4,8 +4,6 @@
 
 **Titolo:** Integrazione Keycloak nel Middleware RETROSPECT: Unified Identity and Access Management per Orchestrazione IoT
 
-**Livello:** Avanzato (Tesi Magistrale)
-
 **Competenze Richieste:** Rust, Kubernetes, Keycloak, OIDC/OAuth2, TLS/mTLS, RBAC
 
 ---
@@ -494,25 +492,18 @@ graph LR
 
 ## Bibliografia e Riferimenti
 
-### Documentazione Middleware RETROSPECT
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Sezione "Authentication and Authorization"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Sezione "Kubernetes and Stack4Things Integration"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Sezione "Public Key Infrastructure (PKI)"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Sezione "TLS 1.3 and Mutual TLS (mTLS)"
-- `retrospect/retrospect/docs/security/security-overview.md` - Panoramica architettura sicurezza
-- `retrospect/retrospect/docs/architecture/system-overview.md` - Documentazione architettura sistema
-- `retrospect/retrospect/crates/wasmbed-gateway-controller/src/main.rs` - Implementazione Gateway Controller
-- `retrospect/retrospect/crates/wasmbed-device-controller/src/main.rs` - Implementazione Device Controller
-- `retrospect/retrospect/crates/wasmbed-application-controller/src/main.rs` - Implementazione Application Controller
-- `retrospect/retrospect/crates/wasmbed-k8s-resource/src/lib.rs` - Definizioni CRD
-
-### Documentazione Stack4Things
-- `AssemblingSmartCPSs/chapter4.tex` - Architettura Stack4Things e servizio IoTronic
-- `AssemblingSmartCPSs/chapter8.tex` - Autenticazione Stack4Things con Keystone
-- `AssemblingSmartCPSs/chapter14.tex` - Sistema plugin e Lightning-Rod
+### Repository e Documentazione Stack4Things
 - Stack4Things GitHub: https://github.com/MDSLab/Stack4Things
 - Stack4Things IoTronic API: https://github.com/MDSLab/iotronic
 - Documentazione Lightning-Rod: https://github.com/MDSLab/iotronic-lightningrod
+
+### Repository di Integrazione Stack4Things Correlati
+- **Stack4Things SDK for Go** (`https://github.com/MIKE9708/s4t-sdk-go.git`): 
+  - SDK Go per interazioni API Stack4Things
+  - Può essere utile come riferimento per integrazione Gateway Controller con Stack4Things
+- **Crossplane Provider per Stack4Things** (`https://github.com/MIKE9708/Provider4_S4T.git`):
+  - Implementazione Crossplane Provider per Stack4Things
+  - Utile riferimento per comprendere pattern di integrazione API Stack4Things
 
 ### Documentazione Keycloak
 - Documentazione Ufficiale Keycloak: https://www.keycloak.org/documentation

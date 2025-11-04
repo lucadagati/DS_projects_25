@@ -4,8 +4,6 @@
 
 **Title:** Crossplane Provider for Stack4Things: Migration from Keystone to Keycloak for Unified Authentication
 
-**Level:** Advanced (Master's Thesis)
-
 **Required Skills:** Go, Kubernetes, Crossplane SDK, Keycloak, OIDC/OAuth2, Stack4Things API
 
 ---
@@ -44,16 +42,19 @@ Modify the Crossplane Provider for Stack4Things to use Keycloak as Identity Prov
 ### 1. Analysis of Existing Crossplane Provider
 
 **Activities:**
-- Analyze Crossplane Provider codebase for Stack4Things
+- Clone and analyze the existing Crossplane Provider repository (`https://github.com/MIKE9708/Provider4_S4T.git`)
+- Clone and analyze the Stack4Things SDK repository (`https://github.com/MIKE9708/s4t-sdk-go.git`)
 - Identify Keystone usage points:
-  - Initial authentication
-  - Token generation
-  - Token validation
-  - Authorization checks
-- Map IoTronic API calls requiring authentication
-- Document current authentication flow
+  - Initial authentication in SDK (`pkg/api/client.go::Authenticate()`)
+  - Token generation (`/v3/auth/tokens` endpoint)
+  - Token storage and usage (`X-Auth-Token` header)
+  - Configuration structure (`pkg/read_conf/configuration.go`)
+- Map IoTronic API calls requiring authentication (all methods in `board_api.go`, `plugin_api.go`, `service_api.go`)
+- Analyze Provider controller implementations (`internal/controller/*.go`)
+- Document current authentication flow and dependencies
+- Identify all files requiring modification
 
-**Deliverable:** Analysis document with Keystone → Keycloak mapping
+**Deliverable:** Analysis document with Keystone → Keycloak mapping, including specific file locations and modification points
 
 ---
 
@@ -83,7 +84,18 @@ Modify the Crossplane Provider for Stack4Things to use Keycloak as Identity Prov
 
 **Components to modify:**
 
-#### 3.1 Authentication Package
+#### 3.1 SDK Authentication Package (`s4t-sdk-go`)
+The SDK currently uses Keystone authentication. Modify `pkg/api/client.go`:
+
+**Current implementation (Keystone):**
+```go
+func (c *Client) Authenticate(client *Client, auth_req *read_config.AuthRequest_1) (string, error) {
+    // POST to /v3/auth/tokens (Keystone endpoint)
+    // Returns X-Subject-Token header
+}
+```
+
+**New implementation (Keycloak):**
 ```go
 // New package: pkg/auth/keycloak
 package keycloak
@@ -95,25 +107,31 @@ type KeycloakAuthenticator struct {
     httpClient   *http.Client
 }
 
-func (k *KeycloakAuthenticator) Authenticate(ctx context.Context) (*Token, error)
+func (k *KeycloakAuthenticator) Authenticate(ctx context.Context) (*Token, error) {
+    // POST to {realmURL}/protocol/openid-connect/token
+    // Use client credentials flow
+    // Returns JWT access token + refresh token
+}
 func (k *KeycloakAuthenticator) RefreshToken(ctx context.Context, refreshToken string) (*Token, error)
 func (k *KeycloakAuthenticator) ValidateToken(ctx context.Context, token string) error
 ```
 
-#### 3.2 Provider Configuration
-- Add Keycloak configuration in ProviderConfig:
+**Modify API client methods** to use `Authorization: Bearer <jwt_token>` instead of `X-Auth-Token` header.
+
+#### 3.2 Provider Configuration (`Provider4_S4T`)
+- Add Keycloak configuration in ProviderConfig CRD (`api/v1alpha1/providerconfig_types.go`):
   - Keycloak server URL
   - Realm name
-  - Client ID and Secret
+  - Client ID and Secret (stored in Kubernetes Secrets)
   - Token endpoint
   - Refresh token endpoint
 
-#### 3.3 IoTronic Client Modification
-- Modify IoTronic client to:
+#### 3.3 Controller Modifications (`Provider4_S4T/internal/controller/`)
+- Modify controllers (board_controller.go, plugin_controller.go, service_controller.go) to:
+  - Initialize Keycloak authenticator from ProviderConfig
   - Use JWT tokens from Keycloak instead of Keystone tokens
-  - Include token in Authorization header
   - Handle token expiration and automatic refresh
-  - Handle authentication errors
+  - Handle authentication errors and retries
 
 **Deliverable:** Modified Crossplane Provider code with Keycloak authentication
 
@@ -350,15 +368,26 @@ graph TB
 
 ## Bibliography and References
 
-### RETROSPECT and Stack4Things Documentation
-- `RETROSPECT_Deliverable_D1_3_v2/main_final.tex` - Section "Kubernetes + S4T + Crossplane: Unified Orchestration"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "Kubernetes and Stack4Things Integration"
-- `AssemblingSmartCPSs/chapter8.tex` - Stack4Things authentication mechanisms with Keystone
-- `AssemblingSmartCPSs/chapter4.tex` - Stack4Things architecture and IoTronic service
-- `AssemblingSmartCPSs/chapter11.tex` - Keycloak usage in SLICES project
-- `RETROSPECT_Deliverable_D2_2_v2/main_final.tex` - Section "Implementation of Stack4Things Client Library"
+### Stack4Things Repositories and Documentation
 - Stack4Things GitHub: https://github.com/MDSLab/Stack4Things
 - Stack4Things IoTronic API Documentation: https://github.com/MDSLab/iotronic
+
+### Existing Implementation Repositories (To Be Modified)
+- **Stack4Things SDK for Go** (`https://github.com/MIKE9708/s4t-sdk-go.git`): 
+  - Go SDK library for interacting with Stack4Things IoTronic API
+  - Currently implements Keystone authentication (`/v3/auth/tokens` endpoint)
+  - Uses `X-Auth-Token` header for API requests
+  - Provides client methods for Board, Plugin, and Service management
+  - **Modification required**: Replace Keystone authentication with Keycloak OIDC/OAuth2 client credentials flow
+  - **Key files to modify**: `pkg/api/client.go` (authentication logic), `pkg/read_conf/configuration.go` (auth request structure)
+
+- **Crossplane Provider for Stack4Things** (`https://github.com/MIKE9708/Provider4_S4T.git`):
+  - Kubernetes Crossplane Provider implementing Stack4Things resources as CRDs
+  - Defines CRDs for Board, Plugin, and Service resources
+  - Uses `s4t-sdk-go` as dependency for Stack4Things API interactions
+  - Implements Kubernetes controllers for resource reconciliation
+  - **Modification required**: Update Provider configuration to use Keycloak credentials, modify SDK usage to handle Keycloak tokens
+  - **Key files to modify**: `internal/controller/*.go` (controller implementations), `api/v1alpha1/*.go` (CRD definitions and ProviderConfig)
 
 ### Crossplane Documentation
 - Crossplane Official Documentation: https://crossplane.io/docs

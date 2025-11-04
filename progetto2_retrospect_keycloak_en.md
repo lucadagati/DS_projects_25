@@ -4,8 +4,6 @@
 
 **Title:** Keycloak Integration in RETROSPECT Middleware: Unified Identity and Access Management for IoT Orchestration
 
-**Level:** Advanced (Master's Thesis)
-
 **Required Skills:** Rust, Kubernetes, Keycloak, OIDC/OAuth2, TLS/mTLS, RBAC
 
 ---
@@ -494,25 +492,18 @@ graph LR
 
 ## Bibliography and References
 
-### RETROSPECT Middleware Documentation
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "Authentication and Authorization"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "Kubernetes and Stack4Things Integration"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "Public Key Infrastructure (PKI)"
-- `RETROSPECT_Deliverable_D3_1_v2/main_final.tex` - Section "TLS 1.3 and Mutual TLS (mTLS)"
-- `retrospect/retrospect/docs/security/security-overview.md` - Security architecture overview
-- `retrospect/retrospect/docs/architecture/system-overview.md` - System architecture documentation
-- `retrospect/retrospect/crates/wasmbed-gateway-controller/src/main.rs` - Gateway Controller implementation
-- `retrospect/retrospect/crates/wasmbed-device-controller/src/main.rs` - Device Controller implementation
-- `retrospect/retrospect/crates/wasmbed-application-controller/src/main.rs` - Application Controller implementation
-- `retrospect/retrospect/crates/wasmbed-k8s-resource/src/lib.rs` - CRD definitions
-
-### Stack4Things Documentation
-- `AssemblingSmartCPSs/chapter4.tex` - Stack4Things architecture and IoTronic service
-- `AssemblingSmartCPSs/chapter8.tex` - Stack4Things authentication with Keystone
-- `AssemblingSmartCPSs/chapter14.tex` - Plugin system and Lightning-Rod
+### Stack4Things Repositories and Documentation
 - Stack4Things GitHub: https://github.com/MDSLab/Stack4Things
 - Stack4Things IoTronic API: https://github.com/MDSLab/iotronic
 - Lightning-Rod Documentation: https://github.com/MDSLab/iotronic-lightningrod
+
+### Related Stack4Things Integration Repositories
+- **Stack4Things SDK for Go** (`https://github.com/MIKE9708/s4t-sdk-go.git`): 
+  - Go SDK for Stack4Things API interactions
+  - May be useful as reference for Gateway Controller integration with Stack4Things
+- **Crossplane Provider for Stack4Things** (`https://github.com/MIKE9708/Provider4_S4T.git`):
+  - Crossplane Provider implementation for Stack4Things
+  - Useful reference for understanding Stack4Things API integration patterns
 
 ### Keycloak Documentation
 - Keycloak Official Documentation: https://www.keycloak.org/documentation
